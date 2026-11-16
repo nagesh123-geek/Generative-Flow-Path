@@ -21,12 +21,7 @@ DENSITY_DIR = "velocity_score_kl_analysis"
 
 OUTPUT_DIR = "velocity_score_dynamics"
 
-FLOWS = [
-    "linear",
-    "trigonometric",
-    "spherical",
-    "operator"
-]
+FLOWS = ["linear","trigonometric","spherical","operator"]
 
 ARCHITECTURE = "transformer"
 
@@ -77,71 +72,40 @@ plt.rcParams.update({
 
 def load_dynamics(flow):
 
-    model_dir = os.path.join(
-        RUNS_DIR,
-        f"{flow}_{ARCHITECTURE}"
-    )
+    model_dir = os.path.join(RUNS_DIR,f"{flow}_{ARCHITECTURE}")
 
-    trajectory_path = os.path.join(
-        model_dir,
-        f"trajectory_{N_SAMPLES}.npy"
-    )
+    trajectory_path = os.path.join(model_dir,f"trajectory_{N_SAMPLES}.npy")
 
-    velocity_path = os.path.join(
-        model_dir,
-        f"velocity_{N_SAMPLES}.npy"
-    )
+    velocity_path = os.path.join(model_dir,f"velocity_{N_SAMPLES}.npy")
 
-    time_path = os.path.join(
-        model_dir,
-        "trajectory_time.npy"
-    )
+    time_path = os.path.join(model_dir,"trajectory_time.npy")
 
-    for path in [
-        trajectory_path,
-        velocity_path,
-        time_path
-    ]:
+    for path in [trajectory_path,velocity_path,time_path]:
 
         if not os.path.exists(path):
             raise FileNotFoundError(path)
 
-    trajectory = np.load(
-        trajectory_path,
-        mmap_mode="r"
-    )
+    trajectory = np.load( trajectory_path,mmap_mode="r")
 
-    velocity = np.load(
-        velocity_path,
-        mmap_mode="r"
-    )
+    velocity = np.load(velocity_path, mmap_mode="r")
 
     time = np.load(time_path)
 
     if trajectory.shape != velocity.shape:
 
-        raise ValueError(
-            f"Trajectory and velocity shape mismatch: "
-            f"{trajectory.shape} vs {velocity.shape}"
-        )
+        raise ValueError(f"Trajectory and velocity shape mismatch: "f"{trajectory.shape} vs {velocity.shape}")
 
     if trajectory.ndim != 3:
 
-        raise ValueError(
-            f"Expected (T,N,D), got {trajectory.shape}"
-        )
+        raise ValueError(f"Expected (T,N,D), got {trajectory.shape}")
 
     if trajectory.shape[2] != 38:
 
-        raise ValueError(
-            f"Expected 38 dimensions, got {trajectory.shape[2]}"
-        )
+        raise ValueError(f"Expected 38 dimensions, got {trajectory.shape[2]}")
 
     if trajectory.shape[0] != len(time):
 
-        raise ValueError(
-            "Time dimension does not match trajectory."
-        )
+        raise ValueError("Time dimension does not match trajectory.")
 
     print(f"Trajectory: {trajectory.shape}")
     print(f"Velocity:   {velocity.shape}")
@@ -154,12 +118,7 @@ def load_dynamics(flow):
 # HELPER: CALCULATE SPATIAL SCORE DIFFERENCE
 # ============================================================
 
-def calculate_score_difference(
-    p_t,
-    p_ref,
-    x_axis,
-    y_axis
-):
+def calculate_score_difference(p_t,p_ref,x_axis,y_axis):
 
     """
     Calculate:
@@ -173,28 +132,14 @@ def calculate_score_difference(
         delta_s_y: (Nx, Ny)
     """
 
-    log_pt = np.log(
-        np.maximum(p_t, EPS)
-    )
+    log_pt = np.log(np.maximum(p_t, EPS))
 
-    log_pref = np.log(
-        np.maximum(p_ref, EPS)
-    )
+    log_pref = np.log(np.maximum(p_ref, EPS))
 
     # Gradient along the two coordinate axes
-    grad_pt_x, grad_pt_y = np.gradient(
-        log_pt,
-        x_axis,
-        y_axis,
-        edge_order=2
-    )
+    grad_pt_x, grad_pt_y = np.gradient(log_pt,x_axis,y_axis,edge_order=2)
 
-    grad_pref_x, grad_pref_y = np.gradient(
-        log_pref,
-        x_axis,
-        y_axis,
-        edge_order=2
-    )
+    grad_pref_x, grad_pref_y = np.gradient(log_pref,x_axis,y_axis,edge_order=2)
 
     delta_s_x = grad_pt_x - grad_pref_x
 
@@ -207,13 +152,7 @@ def calculate_score_difference(
 # HELPER: INTERPOLATE SCORE AT TRAJECTORY SAMPLES
 # ============================================================
 
-def interpolate_score(
-    delta_s_x,
-    delta_s_y,
-    x_axis,
-    y_axis,
-    positions
-):
+def interpolate_score(delta_s_x,delta_s_y,x_axis,y_axis,positions):
 
     """
     positions: (N,2)
@@ -224,17 +163,9 @@ def interpolate_score(
     """
 
     # Keep interpolation coordinates inside the KDE grid.
-    x = np.clip(
-        positions[:, 0],
-        x_axis[0],
-        x_axis[-1]
-    )
+    x = np.clip(positions[:, 0],x_axis[0],x_axis[-1])
 
-    y = np.clip(
-        positions[:, 1],
-        y_axis[0],
-        y_axis[-1]
-    )
+    y = np.clip(positions[:, 1],y_axis[0],y_axis[-1])
 
     points = np.column_stack([x, y])
 
@@ -242,15 +173,13 @@ def interpolate_score(
         (x_axis, y_axis),
         delta_s_x,
         bounds_error=False,
-        fill_value=None
-    )
+        fill_value=None)
 
     interp_y = RegularGridInterpolator(
         (x_axis, y_axis),
         delta_s_y,
         bounds_error=False,
-        fill_value=None
-    )
+        fill_value=None)
 
     score_x = interp_x(points)
 
@@ -263,20 +192,13 @@ def interpolate_score(
 # PROCESS ONE PAIR
 # ============================================================
 
-def analyze_pair(
-    flow,
-    pair,
-    trajectory,
-    velocity,
-    time
-):
+def analyze_pair(flow,pair,trajectory,velocity,time):
 
     density_path = os.path.join(
         DENSITY_DIR,
         flow,
         f"pair_{pair:02d}",
-        "velocity_score_kl_analysis.npz"
-    )
+        "velocity_score_kl_analysis.npz" )
 
     if not os.path.exists(density_path):
 
@@ -348,39 +270,18 @@ def analyze_pair(
         p_t = p_t_all[t]
 
         # Spatial score difference
-        delta_s_x, delta_s_y = calculate_score_difference(
-            p_t,
-            p_ref,
-            x_axis,
-            y_axis
-        )
+        delta_s_x, delta_s_y = calculate_score_difference(p_t,p_ref,x_axis,y_axis)
 
         # Generated positions for this pair
-        positions = np.column_stack([
-
-            trajectory[t, :, dim_x],
-
-            trajectory[t, :, dim_y]
-
-        ])
+        positions = np.column_stack([trajectory[t, :, dim_x], trajectory[t, :, dim_y]])
 
         # Velocity components
-        v_x = np.asarray(
-            velocity[t, :, dim_x]
-        )
+        v_x = np.asarray(velocity[t, :, dim_x])
 
-        v_y = np.asarray(
-            velocity[t, :, dim_y]
-        )
+        v_y = np.asarray(velocity[t, :, dim_y])
 
         # Score difference evaluated at samples
-        ds_x, ds_y = interpolate_score(
-            delta_s_x,
-            delta_s_y,
-            x_axis,
-            y_axis,
-            positions
-        )
+        ds_x, ds_y = interpolate_score( delta_s_x,delta_s_y,x_axis,y_axis,positions)
 
         # ----------------------------------------------------
         # MEAN VELOCITY COMPONENTS
@@ -406,54 +307,34 @@ def analyze_pair(
 
         contribution_y = v_y * ds_y
 
-        results["vpsi_dspsi"][t] = np.mean(
-            contribution_x
-        )
+        results["vpsi_dspsi"][t] = np.mean(contribution_x)
 
-        results["vphi_dsphi"][t] = np.mean(
-            contribution_y
-        )
+        results["vphi_dsphi"][t] = np.mean(contribution_y)
 
-        results["velocity_score_dot"][t] = np.mean(
-            contribution_x + contribution_y
-        )
+        results["velocity_score_dot"][t] = np.mean( contribution_x + contribution_y)
 
         # ----------------------------------------------------
         # MAGNITUDE STATISTICS
         # ----------------------------------------------------
 
-        velocity_magnitude = np.sqrt(
-            v_x**2 + v_y**2
-        )
+        velocity_magnitude = np.sqrt(v_x**2 + v_y**2)
 
-        score_magnitude = np.sqrt(
-            ds_x**2 + ds_y**2
-        )
+        score_magnitude = np.sqrt(ds_x**2 + ds_y**2)
 
-        results["mean_abs_velocity"][t] = np.mean(
-            velocity_magnitude
-        )
+        results["mean_abs_velocity"][t] = np.mean(velocity_magnitude)
 
-        results["mean_abs_score"][t] = np.mean(
-            score_magnitude
-        )
+        results["mean_abs_score"][t] = np.mean(score_magnitude)
 
-        results["velocity_rms"][t] = np.sqrt(
-            np.mean(velocity_magnitude**2)
-        )
+        results["velocity_rms"][t] = np.sqrt(np.mean(velocity_magnitude**2))
 
-        results["score_rms"][t] = np.sqrt(
-            np.mean(score_magnitude**2)
-        )
+        results["score_rms"][t] = np.sqrt(np.mean(score_magnitude**2))
 
         if t % 25 == 0:
 
-            print(
-                f"    Pair {pair:02d} | "
-                f"t = {time[t]:.3f} | "
+            print(f"    Pair {pair:02d} | "
+                  f"t = {time[t]:.3f} | "
                 f"<v.ds> = "
-                f"{results['velocity_score_dot'][t]:.6f}"
-            )
+                f"{results['velocity_score_dot'][t]:.6f}" )
 
     data.close()
 
@@ -466,10 +347,7 @@ def analyze_pair(
 
 cmap = plt.cm.turbo
 
-norm = Normalize(
-    vmin=1,
-    vmax=N_PAIRS
-)
+norm = Normalize(vmin=1,vmax=N_PAIRS)
 
 
 # ============================================================
@@ -478,10 +356,7 @@ norm = Normalize(
 
 def plot_flow(flow, all_results):
 
-    output_flow = os.path.join(
-        OUTPUT_DIR,
-        flow
-    )
+    output_flow = os.path.join(OUTPUT_DIR,flow)
 
     os.makedirs(output_flow, exist_ok=True)
 
@@ -502,12 +377,7 @@ def plot_flow(flow, all_results):
 
     ]
 
-    fig, axes = plt.subplots(
-        3,
-        2,
-        figsize=(17, 15),
-        sharex=True
-    )
+    fig, axes = plt.subplots(3,2,figsize=(17, 15), sharex=True)
 
     axes = axes.flatten()
 
@@ -529,26 +399,22 @@ def plot_flow(flow, all_results):
                 result[key],
                 color=color,
                 linewidth=2.0,
-                alpha=0.9
-            )
+                alpha=0.9 )
 
         ax.set_ylabel(
             ylabel,
             fontsize=16,
-            fontweight="bold"
-        )
+            fontweight="bold")
 
         ax.set_title(
             title,
             fontsize=18,
-            fontweight="bold"
-        )
+            fontweight="bold")
 
         ax.tick_params(
             labelsize=13,
             width=2,
-            length=7
-        )
+            length=7 )
 
         for spine in ax.spines.values():
             spine.set_linewidth(2.2)
@@ -567,8 +433,7 @@ def plot_flow(flow, all_results):
         ax.set_xlabel(
             "Flow time",
             fontsize=16,
-            fontweight="bold"
-        )
+            fontweight="bold")
 
         for label in ax.get_xticklabels() + ax.get_yticklabels():
             label.set_fontweight("bold")
@@ -579,34 +444,24 @@ def plot_flow(flow, all_results):
 
     scalar_map = ScalarMappable(
         norm=norm,
-        cmap=cmap
-    )
+        cmap=cmap )
 
     cbar = fig.colorbar(
         scalar_map,
         ax=axes[:-1],
         fraction=0.025,
-        pad=0.025
-    )
+        pad=0.025)
 
     cbar.set_label(
         "ψ–φ Pair",
         fontsize=16,
-        fontweight="bold"
-    )
+        fontweight="bold)
 
-    cbar.set_ticks(
-        np.arange(1, N_PAIRS + 1)
-    )
+    cbar.set_ticks(np.arange(1, N_PAIRS + 1))
 
-    cbar.set_ticklabels(
-        [f"{i:02d}" for i in range(1, N_PAIRS + 1)]
-    )
+    cbar.set_ticklabels([f"{i:02d}" for i in range(1, N_PAIRS + 1)])
 
-    cbar.ax.tick_params(
-        labelsize=11,
-        width=2
-    )
+    cbar.ax.tick_params(labelsize=11,width=2)
 
     for label in cbar.ax.get_yticklabels():
         label.set_fontweight("bold")
@@ -615,29 +470,14 @@ def plot_flow(flow, all_results):
         f"{flow.capitalize()} Flow: Velocity and Score Dynamics",
         fontsize=23,
         fontweight="bold",
-        y=0.99
-    )
+        y=0.99 )
 
-    plt.tight_layout(
-        rect=[0, 0, 0.94, 0.96]
-    )
+    plt.tight_layout(rect=[0, 0, 0.94, 0.96] )
 
     fig.savefig(
-        os.path.join(
-            output_flow,
-            f"{flow}_velocity_score_dynamics.png"
-        ),
-        dpi=DPI,
-        bbox_inches="tight"
-    )
+        os.path.join(output_flow,f"{flow}_velocity_score_dynamics.png" ),dpi=DPI,bbox_inches="tight" )
 
-    fig.savefig(
-        os.path.join(
-            output_flow,
-            f"{flow}_velocity_score_dynamics.pdf"
-        ),
-        bbox_inches="tight"
-    )
+    fig.savefig(os.path.join(output_flow,f"{flow}_velocity_score_dynamics.pdf"),bbox_inches="tight" )
 
     plt.close(fig)
 
@@ -664,13 +504,7 @@ for flow in FLOWS:
 
         print(f"\nAnalyzing pair {pair:02d}")
 
-        result = analyze_pair(
-            flow,
-            pair,
-            trajectory,
-            velocity,
-            time
-        )
+        result = analyze_pair(flow,pair,trajectory,velocity,time)
 
         if result is None:
             continue
@@ -681,21 +515,12 @@ for flow in FLOWS:
         # SAVE INDIVIDUAL PAIR
         # ----------------------------------------------------
 
-        pair_dir = os.path.join(
-            OUTPUT_DIR,
-            flow,
-            f"pair_{pair:02d}"
-        )
+        pair_dir = os.path.join( OUTPUT_DIR,flow,f"pair_{pair:02d}")
 
         os.makedirs(pair_dir, exist_ok=True)
 
         np.savez_compressed(
-            os.path.join(
-                pair_dir,
-                "velocity_score_dynamics.npz"
-            ),
-            **result
-        )
+            os.path.join( pair_dir, "velocity_score_dynamics.npz"),**result )
 
     # --------------------------------------------------------
     # SAVE COMBINED FLOW DATA
@@ -709,20 +534,11 @@ for flow in FLOWS:
 
             for key, value in result.items():
 
-                combined[
-                    f"pair_{pair:02d}_{key}"
-                ] = value
+                combined[ f"pair_{pair:02d}_{key}"] = value
 
-        combined_path = os.path.join(
-            OUTPUT_DIR,
-            flow,
-            f"{flow}_all_pairs_velocity_score.npz"
-        )
+        combined_path = os.path.join(OUTPUT_DIR,flow,f"{flow}_all_pairs_velocity_score.npz")
 
-        np.savez_compressed(
-            combined_path,
-            **combined
-        )
+        np.savez_compressed(combined_path,**combined)
 
         print(f"\nSaved combined data: {combined_path}")
 
@@ -730,10 +546,7 @@ for flow in FLOWS:
         # PLOT
         # ----------------------------------------------------
 
-        plot_flow(
-            flow,
-            all_results
-        )
+        plot_flow(flow, all_results)
 
         print(f"Plots saved for {flow}")
 
