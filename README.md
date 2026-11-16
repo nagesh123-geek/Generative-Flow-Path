@@ -53,7 +53,7 @@ The `data/` directory contains two datasets used for training and evaluation.
 
 | Dataset | Description |
 |---|---|
-| `threewell_data_downsampled.npy` | Downsampled training data from a three-well potential system. |
+| `threewell_data_downsampled.npy` | Downsampled 10% training data from a three-well potential system. |
 | `10_DATA_TRPCAGE.npy` | Trp-cage molecular dynamics dataset containing 50,000 samples and 38 backbone dihedral features (10% of the available data). |
 
 **Trp-cage data shape:** `(50000, 38)`
