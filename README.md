@@ -92,6 +92,13 @@ Contains the common model architecture and probability path implementations shar
 | `infere.sh` | Inference bash script to sample data from all trained models.|
 | `infere_all.sh` | Sample and Trajectory inference script.|
 
+To execute the inference:
+
+```bash
+bash infere.sh
+bash infere_all.sh
+```
+
 ---
 
 ## 3. Velocity Score Analysis
