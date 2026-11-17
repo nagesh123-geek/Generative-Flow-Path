@@ -89,6 +89,8 @@ Contains the common model architecture and probability path implementations shar
 | `infer_operator.py` | Sampling using the trained operator flow model. |
 | `infer_trigonometric.py` | Sampling using the trained trigonometric flow model. |
 | `infer_spherical.py` | Sampling using the trained spherical flow model. |
+| `infere.sh` | Inference bash script to sample data from all trained models.|
+| `infere_all.sh` | Sample and Trajectory inference script.|
 
 ---
 
