@@ -34,6 +34,8 @@ Generative-Flow-Path/
 │   ├── infer_operator.py
 │   ├── infer_trigonometric.py
 │   └── infer_spherical.py
+|   ├── infere.sh
+|   ├── infere_all.sh
 │
 ├── velocity_score/
 │   ├── velocity_score_computation.py
